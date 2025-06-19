@@ -48,6 +48,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [saving, setSaving] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
@@ -111,6 +112,26 @@ export default function ProductsPage() {
     image: "",
   })
 
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      description: "",
+      price: 0,
+      categoryId: "",
+      available: true,
+      rating: 0,
+      options: "",
+      addons: "",
+      tags: "",
+      image: "",
+    })
+    setEditingProduct(null)
+    setIsDialogOpen(false)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const value = e.target.type === "number" ? Number.parseFloat(e.target.value) || 0 : e.target.value
     setFormData((prev) => ({
@@ -160,9 +181,11 @@ export default function ProductsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!user?.merchantId) return
+    if (!user?.merchantId || saving) return
 
     try {
+      setSaving(true)
+
       // Process arrays properly
       const processedOptions = formData.options
         .split(",")
@@ -194,8 +217,6 @@ export default function ProductsPage() {
         image: formData.image || "",
       }
 
-      console.log("Saving product data:", productData) // Debug log
-
       if (editingProduct) {
         // Update existing product
         const updatedProduct = await BackendlessService.updateProduct(editingProduct.objectId!, productData)
@@ -208,7 +229,7 @@ export default function ProductsPage() {
         setProducts((prev) => [...prev, newProduct])
       }
 
-      // Reset form
+      // Reset form and close dialog
       setFormData({
         name: "",
         description: "",
@@ -223,14 +244,14 @@ export default function ProductsPage() {
       })
       setEditingProduct(null)
       setIsDialogOpen(false)
-
-      // Clear file input
       if (fileInputRef.current) {
         fileInputRef.current.value = ""
       }
     } catch (error: any) {
       console.error("Failed to save product:", error)
       alert("Failed to save product. Please try again.")
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -334,7 +355,29 @@ export default function ProductsPage() {
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-pink-600 hover:bg-pink-700">
+                <Button
+                  className="bg-pink-600 hover:bg-pink-700"
+                  disabled={saving}
+                  onClick={() => {
+                    setEditingProduct(null)
+                    setFormData({
+                      name: "",
+                      description: "",
+                      price: 0,
+                      categoryId: "",
+                      available: true,
+                      rating: 0,
+                      options: "",
+                      addons: "",
+                      tags: "",
+                      image: "",
+                    })
+                    if (fileInputRef.current) {
+                      fileInputRef.current.value = ""
+                    }
+                    setIsDialogOpen(true)
+                  }}
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Product
                 </Button>
@@ -347,6 +390,7 @@ export default function ProductsPage() {
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit}>
+                  {/* Keep all the existing form fields exactly as they are */}
                   <div className="grid gap-4 py-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Product Name</Label>
@@ -358,6 +402,7 @@ export default function ProductsPage() {
                         onChange={handleInputChange}
                         required
                         className="border-pink-200 focus:border-pink-500"
+                        disabled={saving}
                       />
                     </div>
 
@@ -366,6 +411,7 @@ export default function ProductsPage() {
                       <Select
                         value={formData.categoryId}
                         onValueChange={(value) => setFormData((prev) => ({ ...prev, categoryId: value }))}
+                        disabled={saving}
                       >
                         <SelectTrigger className="border-pink-200 focus:border-pink-500">
                           <SelectValue placeholder="Select a category" />
@@ -391,6 +437,7 @@ export default function ProductsPage() {
                         onChange={handleInputChange}
                         className="border-pink-200 focus:border-pink-500"
                         rows={3}
+                        disabled={saving}
                       />
                     </div>
 
@@ -408,6 +455,7 @@ export default function ProductsPage() {
                           min="0"
                           step="0.01"
                           className="border-pink-200 focus:border-pink-500"
+                          disabled={saving}
                         />
                       </div>
                       <div className="space-y-2">
@@ -423,6 +471,7 @@ export default function ProductsPage() {
                           max="5"
                           step="0.1"
                           className="border-pink-200 focus:border-pink-500"
+                          disabled={saving}
                         />
                       </div>
                     </div>
@@ -436,6 +485,7 @@ export default function ProductsPage() {
                         value={formData.options}
                         onChange={handleInputChange}
                         className="border-pink-200 focus:border-pink-500"
+                        disabled={saving}
                       />
                       <p className="text-xs text-gray-500">Size variations, flavors, etc.</p>
                     </div>
@@ -449,6 +499,7 @@ export default function ProductsPage() {
                         value={formData.addons}
                         onChange={handleInputChange}
                         className="border-pink-200 focus:border-pink-500"
+                        disabled={saving}
                       />
                       <p className="text-xs text-gray-500">Optional extras customers can add</p>
                     </div>
@@ -462,6 +513,7 @@ export default function ProductsPage() {
                         value={formData.tags}
                         onChange={handleInputChange}
                         className="border-pink-200 focus:border-pink-500"
+                        disabled={saving}
                       />
                       <p className="text-xs text-gray-500">Keywords to help categorize your product</p>
                     </div>
@@ -483,6 +535,7 @@ export default function ProductsPage() {
                               size="sm"
                               className="absolute top-2 right-2"
                               onClick={removeImage}
+                              disabled={saving}
                             >
                               <X className="h-4 w-4" />
                             </Button>
@@ -491,7 +544,7 @@ export default function ProductsPage() {
                       ) : (
                         <div
                           className="border-2 border-dashed border-pink-200 rounded-lg p-4 text-center cursor-pointer hover:border-pink-300 transition-colors"
-                          onClick={() => fileInputRef.current?.click()}
+                          onClick={() => !uploading && !saving && fileInputRef.current?.click()}
                         >
                           <Upload className="h-8 w-8 text-pink-400 mx-auto mb-2" />
                           <p className="text-sm text-gray-600">
@@ -506,7 +559,7 @@ export default function ProductsPage() {
                         accept="image/*"
                         onChange={handleImageUpload}
                         className="hidden"
-                        disabled={uploading}
+                        disabled={uploading || saving}
                       />
                     </div>
 
@@ -516,6 +569,7 @@ export default function ProductsPage() {
                         checked={formData.available}
                         onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, available: checked }))}
                         className="data-[state=checked]:bg-pink-600"
+                        disabled={saving}
                       />
                       <Label htmlFor="available">Product is available</Label>
                     </div>
@@ -525,8 +579,6 @@ export default function ProductsPage() {
                       type="button"
                       variant="outline"
                       onClick={() => {
-                        setIsDialogOpen(false)
-                        setEditingProduct(null)
                         setFormData({
                           name: "",
                           description: "",
@@ -539,15 +591,24 @@ export default function ProductsPage() {
                           tags: "",
                           image: "",
                         })
+                        setEditingProduct(null)
+                        setIsDialogOpen(false)
                         if (fileInputRef.current) {
                           fileInputRef.current.value = ""
                         }
                       }}
+                      disabled={saving || uploading}
                     >
                       Cancel
                     </Button>
-                    <Button type="submit" className="bg-pink-600 hover:bg-pink-700" disabled={uploading}>
-                      {uploading ? "Uploading..." : editingProduct ? "Update Product" : "Add Product"}
+                    <Button type="submit" className="bg-pink-600 hover:bg-pink-700" disabled={saving || uploading}>
+                      {saving
+                        ? "Saving..."
+                        : uploading
+                          ? "Uploading..."
+                          : editingProduct
+                            ? "Update Product"
+                            : "Add Product"}
                     </Button>
                   </DialogFooter>
                 </form>

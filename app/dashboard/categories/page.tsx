@@ -36,6 +36,7 @@ export default function CategoriesPage() {
   const router = useRouter()
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
 
   // Check if user needs to complete onboarding
   useEffect(() => {
@@ -54,7 +55,7 @@ export default function CategoriesPage() {
       if (!user?.merchantId) return
 
       const fetchedCategories = await BackendlessService.getCategories(user.merchantId)
-      setCategories(fetchedCategories)
+      setCategories(fetchedCategories || [])
     } catch (error) {
       console.error("Failed to load categories:", error)
       setCategories([]) // Set empty array on error
@@ -78,12 +79,19 @@ export default function CategoriesPage() {
     }))
   }
 
+  const resetForm = () => {
+    setFormData({ name: "", description: "", enabled: true })
+    setEditingCategory(null)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!user?.merchantId) return
+    if (!user?.merchantId || saving) return
 
     try {
+      setSaving(true)
+
       if (editingCategory) {
         // Update existing category
         const updatedCategory = await BackendlessService.updateCategory(editingCategory.objectId!, formData)
@@ -97,13 +105,15 @@ export default function CategoriesPage() {
         setCategories((prev) => [...prev, newCategory])
       }
 
-      // Reset form
+      // Reset form and close dialog
       setFormData({ name: "", description: "", enabled: true })
       setEditingCategory(null)
       setIsDialogOpen(false)
     } catch (error: any) {
       console.error("Failed to save category:", error)
-      // You might want to show an error message to the user
+      alert("Failed to save category. Please try again.")
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -118,11 +128,14 @@ export default function CategoriesPage() {
   }
 
   const handleDelete = async (categoryId: string) => {
+    if (!confirm("Are you sure you want to delete this category?")) return
+
     try {
       await BackendlessService.deleteCategory(categoryId)
       setCategories((prev) => prev.filter((cat) => cat.objectId !== categoryId))
     } catch (error) {
       console.error("Failed to delete category:", error)
+      alert("Failed to delete category. Please try again.")
     }
   }
 
@@ -158,7 +171,15 @@ export default function CategoriesPage() {
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-pink-600 hover:bg-pink-700">
+                <Button
+                  className="bg-pink-600 hover:bg-pink-700"
+                  disabled={saving}
+                  onClick={() => {
+                    setEditingCategory(null)
+                    setFormData({ name: "", description: "", enabled: true })
+                    setIsDialogOpen(true)
+                  }}
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Category
                 </Button>
@@ -184,6 +205,7 @@ export default function CategoriesPage() {
                         onChange={handleInputChange}
                         required
                         className="border-pink-200 focus:border-pink-500"
+                        disabled={saving}
                       />
                     </div>
                     <div className="space-y-2">
@@ -196,6 +218,7 @@ export default function CategoriesPage() {
                         onChange={handleInputChange}
                         className="border-pink-200 focus:border-pink-500"
                         rows={3}
+                        disabled={saving}
                       />
                     </div>
                     <div className="flex items-center space-x-2">
@@ -204,6 +227,7 @@ export default function CategoriesPage() {
                         checked={formData.enabled}
                         onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, enabled: checked }))}
                         className="data-[state=checked]:bg-pink-600"
+                        disabled={saving}
                       />
                       <Label htmlFor="enabled">Enable this category</Label>
                     </div>
@@ -217,11 +241,12 @@ export default function CategoriesPage() {
                         setEditingCategory(null)
                         setFormData({ name: "", description: "", enabled: true })
                       }}
+                      disabled={saving}
                     >
                       Cancel
                     </Button>
-                    <Button type="submit" className="bg-pink-600 hover:bg-pink-700">
-                      {editingCategory ? "Update Category" : "Add Category"}
+                    <Button type="submit" className="bg-pink-600 hover:bg-pink-700" disabled={saving}>
+                      {saving ? "Saving..." : editingCategory ? "Update Category" : "Add Category"}
                     </Button>
                   </DialogFooter>
                 </form>
