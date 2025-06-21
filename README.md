@@ -20,7 +20,7 @@
 
 | Frontend                | Backend                            | Database       | Storage                  |
 | ----------------------- | ---------------------------------- | -------------- | ------------------------ |
-| HTML, CSS, JS, Tailwind | Node.js / Express (or Backendless) | Backendless DB | Backendless File Storage |
+| HTML, CSS, JS, Tailwind | Node.js / Express  |    Firestore   | Firestore File Storage |
 
 ---
 
@@ -37,7 +37,7 @@
    ```bash
    npm install
    ```
-3. Configure environment (e.g. Backendless App ID and API Key)
+3. Configure environment (e.g. API Key)
 4. Run locally:
 
    ```bash
@@ -58,4 +58,4 @@
 ## 🙌 Acknowledgements
 
 * Designed and built by Terence and Hamid
-* Backend powered by Backendless
+* Backend powered by Firestore
