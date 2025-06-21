@@ -4,9 +4,9 @@ import "./globals.css"
 import { AuthProvider } from "@/lib/AuthContext"
 
 export const metadata: Metadata = {
-  title: "v0 App",
-  description: "Created with v0",
-  generator: "v0.dev",
+  title: "Ayoo Merchant Dashboard",
+  description: "Manage your store, products, and orders!",
+  generator: "Ayoo Dev Tools",
 }
 
 export default function RootLayout({
